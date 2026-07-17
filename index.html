@@ -70,10 +70,11 @@
           store_id: "store_001",
           cashier_id: "cashier_01"
         })
-      }).then(() => {
-        document.getElementById("google-btn").style.display = "none";
-        document.getElementById("success").style.display = "block";
-      });
+     }).then(() => {
+  document.getElementById("google-btn").style.display = "none";
+  document.getElementById("success").style.display = "block";
+  google.accounts.id.disableAutoSelect();
+});
     }
 
     window.onload = function () {
