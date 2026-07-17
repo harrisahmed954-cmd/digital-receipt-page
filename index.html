@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Get Your Digital Receipt</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 40px 30px;
+      text-align: center;
+      max-width: 380px;
+      width: 90%;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    .icon { font-size: 48px; margin-bottom: 16px; }
+    h1 { font-size: 22px; color: #222; margin-bottom: 8px; }
+    p { font-size: 14px; color: #666; margin-bottom: 28px; line-height: 1.5; }
+    #success {
+      display: none;
+      background: #e8f5e9;
+      border-radius: 12px;
+      padding: 20px;
+      color: #2e7d32;
+    }
+    #success h2 { font-size: 20px; margin-bottom: 8px; }
+    #success p { color: #388e3c; margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">🧾</div>
+    <h1>Get Your Digital Receipt</h1>
+    <p>Skip the paper. Sign in with Google and we'll email your receipt automatically.</p>
+
+    <div id="google-btn"></div>
+    <div id="success">
+      <h2>✅ You're all set!</h2>
+      <p>Your receipt will arrive in your inbox shortly.</p>
+    </div>
+  </div>
+
+  <script>
+    const WEBHOOK_URL = "https://n8n.srv1530322.hstgr.cloud/webhook/digital-receipt";
+
+    function parseJwt(token) {
+      const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      return JSON.parse(atob(base64));
+    }
+
+    function handleCredential(response) {
+      const data = parseJwt(response.credential);
+      fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: data.email,
+          name: data.name,
+          store_id: "store_001",
+          cashier_id: "cashier_01"
+        })
+      }).then(() => {
+        document.getElementById("google-btn").style.display = "none";
+        document.getElementById("success").style.display = "block";
+      });
+    }
+
+    window.onload = function () {
+      google.accounts.id.initialize({
+        client_id: "YOUR_GOOGLE_CLIENT_ID",
+        callback: handleCredential
+      });
+      google.accounts.id.renderButton(
+        document.getElementById("google-btn"),
+        { theme: "outline", size: "large", width: 300 }
+      );
+    };
+  </script>
+</body>
+</html>
