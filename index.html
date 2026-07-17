@@ -27,6 +27,7 @@
     .icon { font-size: 48px; margin-bottom: 16px; }
     h1 { font-size: 22px; color: #222; margin-bottom: 8px; }
     p { font-size: 14px; color: #666; margin-bottom: 28px; line-height: 1.5; }
+    #google-btn { display: flex; justify-content: center; }
     #success {
       display: none;
       background: #e8f5e9;
@@ -36,6 +37,18 @@
     }
     #success h2 { font-size: 20px; margin-bottom: 8px; }
     #success p { color: #388e3c; margin: 0; }
+    #scan-again {
+      display: none;
+      margin-top: 20px;
+      background: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 24px;
+      font-size: 15px;
+      cursor: pointer;
+      width: 100%;
+    }
   </style>
 </head>
 <body>
@@ -45,14 +58,18 @@
     <p>Skip the paper. Sign in with Google and we'll email your receipt automatically.</p>
 
     <div id="google-btn"></div>
+
     <div id="success">
       <h2>✅ You're all set!</h2>
       <p>Your receipt will arrive in your inbox shortly.</p>
     </div>
+
+    <button id="scan-again" onclick="resetPage()">Sign in with a different account</button>
   </div>
 
   <script>
     const WEBHOOK_URL = "https://n8n.srv1530322.hstgr.cloud/webhook/digital-receipt";
+    const CLIENT_ID = "6763860426-8cspf79ka3j9tn654p5lmo74h8tdlaan.apps.googleusercontent.com";
 
     function parseJwt(token) {
       const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
@@ -61,6 +78,7 @@
 
     function handleCredential(response) {
       const data = parseJwt(response.credential);
+
       fetch(WEBHOOK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -73,13 +91,36 @@
       }).then(() => {
         document.getElementById("google-btn").style.display = "none";
         document.getElementById("success").style.display = "block";
+        document.getElementById("scan-again").style.display = "block";
+
+        // Force Google to forget this user immediately
+        google.accounts.id.disableAutoSelect();
+        google.accounts.id.revoke(data.email, () => {});
       });
+    }
+
+    function resetPage() {
+      document.getElementById("google-btn").style.display = "flex";
+      document.getElementById("success").style.display = "none";
+      document.getElementById("scan-again").style.display = "none";
+
+      google.accounts.id.initialize({
+        client_id: CLIENT_ID,
+        callback: handleCredential,
+        auto_select: false
+      });
+      google.accounts.id.renderButton(
+        document.getElementById("google-btn"),
+        { theme: "outline", size: "large", width: 300 }
+      );
+      google.accounts.id.prompt();
     }
 
     window.onload = function () {
       google.accounts.id.initialize({
-        client_id: "6763860426-8cspf79ka3j9tn654p5lmo74h8tdlaan.apps.googleusercontent.com",
-        callback: handleCredential
+        client_id: CLIENT_ID,
+        callback: handleCredential,
+        auto_select: false
       });
       google.accounts.id.renderButton(
         document.getElementById("google-btn"),
