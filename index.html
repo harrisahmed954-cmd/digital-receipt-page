@@ -36,6 +36,26 @@
     }
     #success h2 { font-size: 20px; margin-bottom: 8px; }
     #success p { color: #388e3c; margin: 0; }
+    #error-msg {
+      display: none;
+      background: #fdecea;
+      border-radius: 12px;
+      padding: 16px;
+      color: #c62828;
+      margin-top: 16px;
+      font-size: 13px;
+    }
+    #retry-btn {
+      display: none;
+      margin-top: 16px;
+      padding: 10px 24px;
+      background: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -45,10 +65,14 @@
     <p>Skip the paper. Sign in with Google and we'll email your receipt automatically.</p>
 
     <div id="google-btn"></div>
+
     <div id="success">
       <h2>✅ You're all set!</h2>
       <p>Your receipt will arrive in your inbox shortly.</p>
     </div>
+
+    <div id="error-msg">Something went wrong. Please try again.</div>
+    <button id="retry-btn" onclick="resetLogin()">Try Again</button>
   </div>
 
   <script>
@@ -61,6 +85,9 @@
 
     function handleCredential(response) {
       const data = parseJwt(response.credential);
+
+      google.accounts.id.disableAutoSelect();
+
       fetch(WEBHOOK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -70,21 +97,46 @@
           store_id: "store_001",
           cashier_id: "cashier_01"
         })
-      }).then(() => {
-        document.getElementById("google-btn").style.display = "none";
-        document.getElementById("success").style.display = "block";
-      });
+      })
+      .then(res => {
+        if (res.ok) {
+          document.getElementById("google-btn").style.display = "none";
+          document.getElementById("success").style.display = "block";
+        } else {
+          showError();
+        }
+      })
+      .catch(() => showError());
     }
 
-    window.onload = function () {
+    function showError() {
+      document.getElementById("error-msg").style.display = "block";
+      document.getElementById("retry-btn").style.display = "inline-block";
+    }
+
+    function resetLogin() {
+      document.getElementById("error-msg").style.display = "none";
+      document.getElementById("retry-btn").style.display = "none";
+      document.getElementById("google-btn").style.display = "block";
+      google.accounts.id.disableAutoSelect();
+      renderGoogleBtn();
+    }
+
+    function renderGoogleBtn() {
       google.accounts.id.initialize({
         client_id: "6763860426-e3o8lgcqnac6lneaik1ocpr1hv6kc3ir.apps.googleusercontent.com",
-        callback: handleCredential
+        callback: handleCredential,
+        auto_select: false,
+        cancel_on_tap_outside: false
       });
       google.accounts.id.renderButton(
         document.getElementById("google-btn"),
         { theme: "outline", size: "large", width: 300 }
       );
+    }
+
+    window.onload = function () {
+      renderGoogleBtn();
     };
   </script>
 </body>
